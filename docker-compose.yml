@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # 1. POSTGRESQL DATABASE
+  # ============================================
+  db:
+    image: postgres:15
+    container_name: emos_db
+    environment:
+      POSTGRES_USER: emos_user
+      POSTGRES_PASSWORD: emos_pass
+      POSTGRES_DB: emos_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - emos_network
+
+  # ============================================
+  # 2. BACKEND (FastAPI)
+  # ============================================
+  backend:
+    build: ./backend
+    container_name: emos_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://emos_user:emos_pass@db:5432/emos_db
+      FIREWORKS_API_KEY: ${FIREWORKS_API_KEY}
+      FIREWORKS_MODEL: ${FIREWORKS_MODEL:-accounts/fireworks/models/deepseek-v3}
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+    restart: unless-stopped
+    networks:
+      - emos_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ============================================
+  # 3. FRONTEND (Next.js)
+  # ============================================
+  frontend:
+    build: ./frontend
+    container_name: emos_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    restart: unless-stopped
+    networks:
+      - emos_network
+    environment:
+      - NODE_ENV=development
+
+# ============================================
+# NETWORKS & VOLUMES
+# ============================================
+networks:
+  emos_network:
+    driver: bridge
+
+volumes:
+  postgres_data:

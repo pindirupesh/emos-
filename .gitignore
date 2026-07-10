@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+dist/
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
+.DS_Store
+.vscode/
+*.log
+*.node
+*.so
+*.dylib
+*.exe
